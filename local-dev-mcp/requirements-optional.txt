@@ -1,0 +1,10 @@
+# Optional dependencies that unlock extra capabilities.
+# Install everything with:  pip install -r requirements-optional.txt
+
+psutil>=5.9            # process_list/get, memory_usage, network_interfaces
+pyautogui>=0.9.54      # GUI mouse/keyboard automation
+mss>=9.0               # fast screenshots
+pyperclip>=1.8         # clipboard get/set
+psycopg2-binary>=2.9   # PostgreSQL (db_postgres_query)
+pymysql>=1.1           # MySQL / MariaDB (db_mysql_query)
+pyodbc>=5.0            # Microsoft SQL Server (db_mssql_query)

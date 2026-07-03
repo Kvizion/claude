@@ -1,0 +1,81 @@
+"""local-dev-mcp — a local MCP server that turns Notion AI (or any MCP client)
+into a Claude Code-style local development agent.
+
+Run it with::
+
+    python server.py                # stdio transport (default, for MCP clients)
+    python server.py --transport sse --host 127.0.0.1 --port 8000
+
+The server registers every tool module in :mod:`tools` and then hands control
+to the MCP runtime.
+"""
+
+from __future__ import annotations
+
+import argparse
+import sys
+
+from mcp.server.fastmcp import FastMCP
+
+from config import CONFIG
+from tools import ALL_MODULES, register_all
+from utils.logger import get_logger
+
+log = get_logger("server")
+
+INSTRUCTIONS = """\
+This server exposes local development capabilities to the connected AI agent:
+filesystem access, a real terminal (including background/interactive sessions),
+git, project analysis, process/system inspection, HTTP + web fetch, databases,
+Docker/Kubernetes, archives, editor integration and (where a display exists)
+GUI automation.
+
+Prefer the specific tools (e.g. git_status, fs_read_file) over raw terminal_run
+when one exists, and consult workspace_detect_project first when exploring an
+unfamiliar repository.
+"""
+
+
+def build_server() -> FastMCP:
+    mcp = FastMCP("local-dev-mcp", instructions=INSTRUCTIONS)
+    register_all(mcp)
+    return mcp
+
+
+def _log_startup() -> None:
+    log.info("Starting local-dev-mcp")
+    log.info("Workspace roots: %s",
+             ", ".join(str(r) for r in CONFIG.workspace_roots) or "(unrestricted)")
+    log.info(
+        "Capabilities: write=%s delete=%s terminal=%s network=%s gui=%s database=%s",
+        CONFIG.allow_write, CONFIG.allow_delete, CONFIG.allow_terminal,
+        CONFIG.allow_network, CONFIG.allow_gui, CONFIG.allow_database,
+    )
+    log.info("Loaded %d tool modules", len(ALL_MODULES))
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="local-dev-mcp server")
+    parser.add_argument("--transport", choices=["stdio", "sse", "streamable-http"],
+                        default="stdio", help="Transport to serve on (default: stdio).")
+    parser.add_argument("--host", default="127.0.0.1", help="Host for network transports.")
+    parser.add_argument("--port", type=int, default=8000, help="Port for network transports.")
+    args = parser.parse_args(argv)
+
+    _log_startup()
+    mcp = build_server()
+
+    if args.transport == "stdio":
+        mcp.run(transport="stdio")
+    else:
+        mcp.settings.host = args.host
+        mcp.settings.port = args.port
+        mcp.run(transport=args.transport)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        log.info("Shutting down (keyboard interrupt).")
+        sys.exit(0)
