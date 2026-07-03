@@ -1,3 +1,5 @@
+import sys
+
 import pytest
 
 import config as config_module
@@ -26,7 +28,7 @@ def test_split_command():
 
 
 def test_run_command_success():
-    result = run_command(["echo", "hi"])
+    result = run_command([sys.executable, "-c", "print('hi')"])
     assert result["exit_code"] == 0
     assert "hi" in result["stdout"]
 
@@ -38,7 +40,7 @@ def test_run_command_missing_binary():
 
 
 def test_run_command_timeout():
-    result = run_command(["sleep", "5"], timeout=0.2)
+    result = run_command([sys.executable, "-c", "import time; time.sleep(5)"], timeout=1)
     assert result["timed_out"] is True
 
 
