@@ -36,8 +36,31 @@ unfamiliar repository.
 """
 
 
+def _build_transport_security():
+    """DNS-rebinding protection settings for the network transports.
+
+    Behind a tunnel the Host header is the public domain, which FastMCP's default
+    (localhost-only) allow-list would reject with HTTP 421. Since the auth token
+    is the real gate, host validation is disabled unless the operator pins hosts
+    via LOCAL_DEV_MCP_ALLOWED_HOSTS.
+    """
+    from mcp.server.transport_security import TransportSecuritySettings
+
+    if CONFIG.allowed_hosts:
+        return TransportSecuritySettings(
+            enable_dns_rebinding_protection=True,
+            allowed_hosts=CONFIG.allowed_hosts + ["127.0.0.1:*", "localhost:*", "[::1]:*"],
+            allowed_origins=CONFIG.allowed_hosts,
+        )
+    return TransportSecuritySettings(enable_dns_rebinding_protection=False)
+
+
 def build_server() -> FastMCP:
-    mcp = FastMCP("local-dev-mcp", instructions=INSTRUCTIONS)
+    mcp = FastMCP(
+        "local-dev-mcp",
+        instructions=INSTRUCTIONS,
+        transport_security=_build_transport_security(),
+    )
     register_all(mcp)
     return mcp
 
@@ -54,6 +77,10 @@ def _log_startup() -> None:
         CONFIG.allow_network, CONFIG.allow_gui, CONFIG.allow_database,
     )
     log.info("Loaded %d tool modules", len(ALL_MODULES))
+    if CONFIG.allowed_hosts:
+        log.info("Host validation ENABLED for: %s", ", ".join(CONFIG.allowed_hosts))
+    else:
+        log.info("Host validation disabled (works behind tunnels; token is the gate).")
 
 
 def main(argv: list[str] | None = None) -> None:

@@ -49,6 +49,13 @@ def _env_paths(name: str) -> list[Path]:
     return [Path(p).expanduser().resolve() for p in parts]
 
 
+def _env_list(name: str) -> list[str]:
+    raw = _env(name)
+    if not raw:
+        return []
+    return [x.strip() for x in raw.replace(";", ",").split(",") if x.strip()]
+
+
 # Default on-disk allow-list file, e.g. C:\Users\me\.local-dev-mcp\allowed_roots.txt
 DEFAULT_ROOTS_FILE = Path.home() / ".local-dev-mcp" / "allowed_roots.txt"
 
@@ -117,6 +124,11 @@ class Config:
     # ``X-API-Key: <token>``. Ignored by the stdio transport (local only).
     auth_token: str | None = None
 
+    # Host-header allow-list for DNS-rebinding protection on network transports.
+    # When empty, host validation is disabled (needed to work behind a tunnel;
+    # the auth token is the real gate). When set, only these hosts are accepted.
+    allowed_hosts: list[str] = field(default_factory=list)
+
     @classmethod
     def from_env(cls) -> "Config":
         default_cwd = _env("DEFAULT_CWD")
@@ -136,6 +148,7 @@ class Config:
             if default_cwd
             else Path.cwd(),
             auth_token=_env("AUTH_TOKEN") or None,
+            allowed_hosts=_env_list("ALLOWED_HOSTS"),
         )
 
     # -- path handling -------------------------------------------------

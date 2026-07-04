@@ -142,6 +142,7 @@ All configuration is via environment variables (see [`.env.example`](.env.exampl
 | `LOCAL_DEV_MCP_MAX_READ_BYTES` | `2000000` | Cap on file reads. |
 | `LOCAL_DEV_MCP_DEFAULT_CWD` | *(process CWD)* | Default working directory for commands. |
 | `LOCAL_DEV_MCP_AUTH_TOKEN` | *(none)* | Shared secret for HTTP/SSE transports. When set, requests must send `Authorization: Bearer <token>` or `X-API-Key: <token>`. |
+| `LOCAL_DEV_MCP_ALLOWED_HOSTS` | *(empty = off)* | Comma-separated Host-header allow-list (DNS-rebinding protection). Empty disables host checks so the server works behind a tunnel; set it to pin hosts. |
 | `LOCAL_DEV_MCP_LOG_LEVEL` | `INFO` | Logging verbosity (logs go to stderr). |
 
 ---
