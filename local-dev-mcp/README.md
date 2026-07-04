@@ -76,13 +76,24 @@ python server.py --transport streamable-http --host 127.0.0.1 --port 8000
 ## Connecting it to Notion AI
 
 Notion AI Enterprise supports connecting **custom MCP servers** from the agent's
-**Tools and access** settings. Point it at this server. For a locally running
-process you typically expose an HTTP transport (or run it behind the connector
-your deployment uses):
+**Tools and access** settings. Point it at this server. Because Notion reaches
+your machine from the cloud, a local server must be exposed over HTTPS (e.g. via
+`cloudflared` or `ngrok`), and you should set an auth token first:
 
 ```bash
-python server.py --transport streamable-http --port 8000
+# generate a token once
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+
+# run the server with the token (Windows PowerShell: $env:LOCAL_DEV_MCP_AUTH_TOKEN="...")
+LOCAL_DEV_MCP_AUTH_TOKEN=<token> python server.py --transport streamable-http --port 8000
+
+# in another terminal, expose it
+cloudflared tunnel --url http://localhost:8000
 ```
+
+The MCP endpoint is the public URL with `/mcp` appended. Add it in the agent's
+**Tools and access → connectors**, and provide the token as a
+`Authorization: Bearer <token>` header if the connector supports custom headers.
 
 Then add the server's URL in the agent's **Tools and access → MCP servers**
 section and grant the capabilities you want. (Notion custom-agent permissions,
@@ -127,6 +138,7 @@ All configuration is via environment variables (see [`.env.example`](.env.exampl
 | `LOCAL_DEV_MCP_MAX_OUTPUT_BYTES` | `200000` | Cap on captured stdout/stderr. |
 | `LOCAL_DEV_MCP_MAX_READ_BYTES` | `2000000` | Cap on file reads. |
 | `LOCAL_DEV_MCP_DEFAULT_CWD` | *(process CWD)* | Default working directory for commands. |
+| `LOCAL_DEV_MCP_AUTH_TOKEN` | *(none)* | Shared secret for HTTP/SSE transports. When set, requests must send `Authorization: Bearer <token>` or `X-API-Key: <token>`. |
 | `LOCAL_DEV_MCP_LOG_LEVEL` | `INFO` | Logging verbosity (logs go to stderr). |
 
 ---
@@ -143,7 +155,10 @@ Recommended hardening:
 - Disable capabilities you don't need (`ALLOW_GUI=false`, `ALLOW_DELETE=false`, ...).
 - Run it as a **non-privileged user**, ideally inside a container or VM.
 - Never expose the network transport on a public interface without
-  authentication in front of it.
+  authentication. Set `LOCAL_DEV_MCP_AUTH_TOKEN` to a long random secret;
+  unauthenticated requests then get `401`. When you serve it through a tunnel
+  (e.g. `cloudflared`/`ngrok`), the token is what stops anyone with the URL
+  from controlling your machine.
 - Environment variables may contain secrets; `system_env_vars` returns their
   values, so keep the transport private.
 

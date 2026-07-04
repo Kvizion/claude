@@ -67,10 +67,30 @@ def main(argv: list[str] | None = None) -> None:
 
     if args.transport == "stdio":
         mcp.run(transport="stdio")
+        return
+
+    # Network transports: build the ASGI app so we can enforce token auth,
+    # then serve it with uvicorn.
+    import uvicorn
+
+    mcp.settings.host = args.host
+    mcp.settings.port = args.port
+    app = mcp.sse_app() if args.transport == "sse" else mcp.streamable_http_app()
+
+    if CONFIG.auth_token:
+        from utils.auth import wrap_with_auth
+
+        app = wrap_with_auth(app, CONFIG.auth_token)
+        log.info("Token authentication is ENABLED for the %s endpoint.", args.transport)
     else:
-        mcp.settings.host = args.host
-        mcp.settings.port = args.port
-        mcp.run(transport=args.transport)
+        log.warning(
+            "No LOCAL_DEV_MCP_AUTH_TOKEN set: the %s endpoint is UNAUTHENTICATED. "
+            "Anyone who can reach it can control this machine. Set a token before "
+            "exposing it over a tunnel.",
+            args.transport,
+        )
+
+    uvicorn.run(app, host=args.host, port=args.port, log_level="info")
 
 
 if __name__ == "__main__":

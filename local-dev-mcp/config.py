@@ -74,6 +74,11 @@ class Config:
     # Default working directory for terminal commands.
     default_cwd: Path = field(default_factory=Path.cwd)
 
+    # Optional shared-secret token for network transports (HTTP/SSE). When set,
+    # every request must present it as ``Authorization: Bearer <token>`` or
+    # ``X-API-Key: <token>``. Ignored by the stdio transport (local only).
+    auth_token: str | None = None
+
     @classmethod
     def from_env(cls) -> "Config":
         default_cwd = _env("DEFAULT_CWD")
@@ -92,6 +97,7 @@ class Config:
             default_cwd=Path(default_cwd).expanduser().resolve()
             if default_cwd
             else Path.cwd(),
+            auth_token=_env("AUTH_TOKEN") or None,
         )
 
     # -- path handling -------------------------------------------------
