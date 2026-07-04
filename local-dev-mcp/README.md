@@ -92,8 +92,10 @@ cloudflared tunnel --url http://localhost:8000
 ```
 
 The MCP endpoint is the public URL with `/mcp` appended. Add it in the agent's
-**Tools and access → connectors**, and provide the token as a
-`Authorization: Bearer <token>` header if the connector supports custom headers.
+**Tools and access → connectors**, and provide the token as an
+`Authorization: Bearer <token>` header. If the connector only accepts a bare
+URL (no header field), embed the secret in the URL instead:
+`https://<public-host>/mcp?key=<token>`.
 
 Then add the server's URL in the agent's **Tools and access → MCP servers**
 section and grant the capabilities you want. (Notion custom-agent permissions,

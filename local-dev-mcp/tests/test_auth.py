@@ -44,3 +44,14 @@ def test_correct_api_key_header_is_accepted():
     client = TestClient(_app())
     resp = client.get("/mcp", headers={"X-API-Key": TOKEN})
     assert resp.status_code == 200
+
+
+def test_correct_query_key_is_accepted():
+    client = TestClient(_app())
+    assert client.get(f"/mcp?key={TOKEN}").status_code == 200
+    assert client.get(f"/mcp?token={TOKEN}").status_code == 200
+
+
+def test_wrong_query_key_is_rejected():
+    client = TestClient(_app())
+    assert client.get("/mcp?key=nope").status_code == 401

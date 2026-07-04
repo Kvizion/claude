@@ -1,9 +1,10 @@
 """Token authentication middleware for the network (HTTP/SSE) transports.
 
 When a shared secret is configured, every HTTP request must present it as
-``Authorization: Bearer <token>`` or ``X-API-Key: <token>``. This keeps the
-endpoint from being an open "run anything on my machine" service when exposed
-through a tunnel. The stdio transport is local-only and is never wrapped.
+``Authorization: Bearer <token>``, ``X-API-Key: <token>``, or a ``?key=<token>``
+query parameter (handy for clients that can only store a bare URL). This keeps
+the endpoint from being an open "run anything on my machine" service when
+exposed through a tunnel. The stdio transport is local-only and is never wrapped.
 """
 
 from __future__ import annotations
@@ -26,7 +27,9 @@ class TokenAuthMiddleware(BaseHTTPMiddleware):
         header = request.headers.get("authorization", "")
         if header.lower().startswith("bearer "):
             return header[7:]
-        return None
+        # URL fallback for clients that can only store a plain URL:
+        #   https://host/mcp?key=<token>   (or ?token=<token>)
+        return request.query_params.get("key") or request.query_params.get("token")
 
     async def dispatch(self, request, call_next):
         provided = self._extract(request)
