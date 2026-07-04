@@ -130,6 +130,7 @@ All configuration is via environment variables (see [`.env.example`](.env.exampl
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `LOCAL_DEV_MCP_ROOTS` | *(empty = unrestricted)* | `os.pathsep`-separated allow-list of directories. Every path is confined to these roots. |
+| `LOCAL_DEV_MCP_ROOTS_FILE` | *(auto)* | Path to an allow-list file (one directory per line, `#` comments). A file at `~/.local-dev-mcp/allowed_roots.txt` is also loaded automatically. |
 | `LOCAL_DEV_MCP_ALLOW_WRITE` | `true` | Allow file writes/edits. |
 | `LOCAL_DEV_MCP_ALLOW_DELETE` | `true` | Allow deletes. |
 | `LOCAL_DEV_MCP_ALLOW_TERMINAL` | `true` | Allow command execution & process control. |

@@ -62,3 +62,30 @@ def test_config_write_guard(tmp_path):
     cfg = config_module.Config(workspace_roots=[tmp_path], allow_write=False)
     with pytest.raises(PermissionError):
         cfg.check_path(tmp_path / "x", write=True)
+
+
+def test_is_allowed_subpath_and_sibling(tmp_path):
+    cfg = config_module.Config(workspace_roots=[tmp_path / "root"])
+    assert cfg.is_allowed(tmp_path / "root" / "sub" / "f.txt") is True
+    # A sibling that merely shares a name prefix must NOT be allowed.
+    assert cfg.is_allowed(tmp_path / "rootother" / "f.txt") is False
+
+
+def test_read_roots_file(tmp_path):
+    listing = tmp_path / "allowed.txt"
+    listing.write_text(
+        f"# my allowed folders\n{tmp_path / 'a'}\n\n\"{tmp_path / 'b'}\"\n",
+        encoding="utf-8",
+    )
+    roots = config_module._read_roots_file(listing)
+    assert {r.name for r in roots} == {"a", "b"}
+
+
+def test_load_roots_merges_env_and_file(tmp_path, monkeypatch):
+    listing = tmp_path / "allowed.txt"
+    listing.write_text(str(tmp_path / "from_file") + "\n", encoding="utf-8")
+    monkeypatch.setenv("LOCAL_DEV_MCP_ROOTS", str(tmp_path / "from_env"))
+    monkeypatch.setenv("LOCAL_DEV_MCP_ROOTS_FILE", str(listing))
+    monkeypatch.setattr(config_module, "DEFAULT_ROOTS_FILE", tmp_path / "does_not_exist.txt")
+    names = {r.name for r in config_module._load_roots()}
+    assert {"from_env", "from_file"} <= names

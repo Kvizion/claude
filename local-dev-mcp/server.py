@@ -17,7 +17,7 @@ import sys
 
 from mcp.server.fastmcp import FastMCP
 
-from config import CONFIG
+from config import CONFIG, DEFAULT_ROOTS_FILE
 from tools import ALL_MODULES, register_all
 from utils.logger import get_logger
 
@@ -46,6 +46,8 @@ def _log_startup() -> None:
     log.info("Starting local-dev-mcp")
     log.info("Workspace roots: %s",
              ", ".join(str(r) for r in CONFIG.workspace_roots) or "(unrestricted)")
+    log.info("Allow-list file: %s (%s)", DEFAULT_ROOTS_FILE,
+             "found" if DEFAULT_ROOTS_FILE.exists() else "not present")
     log.info(
         "Capabilities: write=%s delete=%s terminal=%s network=%s gui=%s database=%s",
         CONFIG.allow_write, CONFIG.allow_delete, CONFIG.allow_terminal,

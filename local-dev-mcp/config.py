@@ -49,6 +49,43 @@ def _env_paths(name: str) -> list[Path]:
     return [Path(p).expanduser().resolve() for p in parts]
 
 
+# Default on-disk allow-list file, e.g. C:\Users\me\.local-dev-mcp\allowed_roots.txt
+DEFAULT_ROOTS_FILE = Path.home() / ".local-dev-mcp" / "allowed_roots.txt"
+
+
+def _read_roots_file(path: Path) -> list[Path]:
+    """Read an allow-list file: one directory per line, '#' starts a comment."""
+    roots: list[Path] = []
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip().strip('"')
+            if not stripped or stripped.startswith("#"):
+                continue
+            roots.append(Path(os.path.expandvars(os.path.expanduser(stripped))).resolve())
+    except OSError:
+        pass
+    return roots
+
+
+def _load_roots() -> list[Path]:
+    """Combine roots from the env var, an explicit file, and the default file."""
+    roots = list(_env_paths("ROOTS"))
+    explicit = _env("ROOTS_FILE")
+    if explicit:
+        roots += _read_roots_file(Path(explicit).expanduser())
+    if DEFAULT_ROOTS_FILE.exists():
+        roots += _read_roots_file(DEFAULT_ROOTS_FILE)
+    # De-duplicate while keeping order.
+    seen: set[str] = set()
+    unique: list[Path] = []
+    for r in roots:
+        key = os.path.normcase(str(r))
+        if key not in seen:
+            seen.add(key)
+            unique.append(r)
+    return unique
+
+
 @dataclass
 class Config:
     """Runtime configuration, normally built with :meth:`from_env`."""
@@ -83,7 +120,7 @@ class Config:
     def from_env(cls) -> "Config":
         default_cwd = _env("DEFAULT_CWD")
         return cls(
-            workspace_roots=_env_paths("ROOTS"),
+            workspace_roots=_load_roots(),
             allow_write=_env_bool("ALLOW_WRITE", True),
             allow_delete=_env_bool("ALLOW_DELETE", True),
             allow_terminal=_env_bool("ALLOW_TERMINAL", True),
@@ -112,12 +149,12 @@ class Config:
     def is_allowed(self, path: Path) -> bool:
         if not self.workspace_roots:
             return True
+        # normcase makes this correct on case-insensitive filesystems (Windows).
+        target = os.path.normcase(str(path))
         for root in self.workspace_roots:
-            try:
-                path.relative_to(root)
+            root_str = os.path.normcase(str(root))
+            if target == root_str or target.startswith(root_str + os.sep):
                 return True
-            except ValueError:
-                continue
         return False
 
     def check_path(self, path: str | os.PathLike, *, write: bool = False) -> Path:
