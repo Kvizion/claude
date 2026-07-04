@@ -57,7 +57,8 @@ def _read_roots_file(path: Path) -> list[Path]:
     """Read an allow-list file: one directory per line, '#' starts a comment."""
     roots: list[Path] = []
     try:
-        for line in path.read_text(encoding="utf-8").splitlines():
+        # utf-8-sig transparently strips a BOM that editors like Notepad add.
+        for line in path.read_text(encoding="utf-8-sig").splitlines():
             stripped = line.strip().strip('"')
             if not stripped or stripped.startswith("#"):
                 continue
