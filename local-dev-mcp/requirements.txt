@@ -1,0 +1,16 @@
+# Core (required)
+mcp>=1.2.0
+
+# Optional extras — install the ones you need. The server runs without them and
+# the corresponding tools report a clear "not installed" message if missing.
+#
+#   pip install -r requirements-optional.txt
+#
+# psutil>=5.9          # richer process/system/memory stats
+# requests>=2.31       # (not required; network tools use urllib by default)
+# pyautogui>=0.9.54    # GUI mouse/keyboard automation
+# mss>=9.0             # fast screenshots
+# pyperclip>=1.8       # clipboard access
+# psycopg2-binary>=2.9 # PostgreSQL
+# pymysql>=1.1         # MySQL / MariaDB
+# pyodbc>=5.0          # Microsoft SQL Server
